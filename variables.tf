@@ -8,12 +8,6 @@ variable "datadog_site" {
   default = "datadoghq.com"
 }
 
-variable "prod_instance_ids" {
-  type = list(string)
-  default = []
-
-}
-
 variable "nonprod_instance_ids" {
   type = list(string)
 }

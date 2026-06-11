@@ -1,6 +1,6 @@
 resource "aws_ssm_document" "datadog_agent_install" {
 
-  name          = "Datadog-AmazonLinux-Install"
+  name          = "Datadog-AmazonLinux-and-Ubuntu-Install-Non-prod"
   document_type = "Command"
 
   content = jsonencode({

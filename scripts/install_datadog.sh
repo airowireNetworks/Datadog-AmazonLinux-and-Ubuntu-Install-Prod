@@ -57,8 +57,8 @@ echo "Auth log file: $AUTH_FILE"
 # if this script fails or exits early.
 ###########################################
  
-systemctl enable amazon-ssm-agent || true
-systemctl start amazon-ssm-agent  || true
+systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
 echo "SSM Agent status at start: $(systemctl is-active amazon-ssm-agent || true)"
  
 trap 'echo "--- EXIT TRAP: restoring SSM agent ---"; systemctl start amazon-ssm-agent || true; echo "SSM status: $(systemctl is-active amazon-ssm-agent || true)"' EXIT
