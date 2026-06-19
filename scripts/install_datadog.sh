@@ -25,40 +25,14 @@ export DD_API_KEY
 export DD_SITE
  
 ###########################################
-# OS Detection
-###########################################
- 
-SYSLOG_FILE="/var/log/messages"
-AUTH_FILE="/var/log/secure"
- 
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
- 
-    case "$ID" in
-        ubuntu)
-            SYSLOG_FILE="/var/log/syslog"
-            AUTH_FILE="/var/log/auth.log"
-            ;;
-        *)
-            SYSLOG_FILE="/var/log/messages"
-            AUTH_FILE="/var/log/secure"
-            ;;
-    esac
-fi
- 
-echo "Detected OS: ${ID:-unknown}"
-echo "System log file: $SYSLOG_FILE"
-echo "Auth log file: $AUTH_FILE"
- 
-###########################################
 # SSM AGENT PROTECTION
 # Ensure SSM is running before any changes.
 # EXIT TRAP guarantees SSM is restored even
 # if this script fails or exits early.
 ###########################################
  
-systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service || true
-systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+systemctl enable amazon-ssm-agent || true
+systemctl start amazon-ssm-agent  || true
 echo "SSM Agent status at start: $(systemctl is-active amazon-ssm-agent || true)"
  
 trap 'echo "--- EXIT TRAP: restoring SSM agent ---"; systemctl start amazon-ssm-agent || true; echo "SSM status: $(systemctl is-active amazon-ssm-agent || true)"' EXIT
@@ -162,7 +136,7 @@ cat > /etc/datadog-agent/conf.d/host.d/conf.yaml << EOF
 logs:
   # General system messages
   - type: file
-    path: $SYSLOG_FILE
+    path: /var/log/messages
     service: system
     source: linux
     tags:
@@ -170,11 +144,28 @@ logs:
  
   # Authentication, SSH, sudo logs
   - type: file
-    path: $AUTH_FILE
+    path: /var/log/secure
     service: security
     source: linux
     tags:
       - log_type:auth
+ 
+# General system messages
+  - type: file
+    path: /var/log/syslog
+    service: system
+    source: linux
+    tags:
+      - log_type:system
+ 
+# Authentication, SSH, sudo logs
+  - type: file
+    path: /var/log/auth.log
+    service: security
+    source: linux
+    tags:
+      - log_type:auth
+ 
  
   # Kernel and boot logs
   - type: file
@@ -333,12 +324,8 @@ usermod -aG adm dd-agent || true
 # logrotate postrotate script instead.
 ###########################################
  
-if systemctl list-unit-files | grep -q "^auditd"; then
-    systemctl enable auditd || true
-    systemctl start auditd  || true
-else
-    echo "auditd service not found - skipping"
-fi
+systemctl enable auditd || true
+systemctl start auditd  || true
  
 # Grant dd-agent (adm group) access to audit dir + log
 if [ -d /var/log/audit ]; then
@@ -467,8 +454,8 @@ id dd-agent || true
 echo ""
 echo "===== Log File Permissions ====="
 ls -la /var/log/audit/audit.log 2>/dev/null || echo "audit.log not found"
-ls -la "$SYSLOG_FILE" 2>/dev/null || echo "system log not found"
-ls -la "$AUTH_FILE"   2>/dev/null || echo "auth log not found"
+ls -la /var/log/messages        2>/dev/null || echo "messages not found"
+ls -la /var/log/secure          2>/dev/null || echo "secure not found"
 [ "$APP_LOGS_CONFIGURED" = true ] && ls -la "$APP_LOG_PATH" 2>/dev/null || true
  
 echo ""
